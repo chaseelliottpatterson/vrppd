@@ -139,7 +139,12 @@ def build_routes(sorted_savings, load_numbers):
                     routes.append(unassigned_route)
     return routes
     
-
+def output(routes):
+    for route in routes:
+        all_load_numbers = []
+        for load_number in route.path:
+            all_load_numbers.append(int(load_number.number))
+        print(all_load_numbers)
 
 def main():
     if len(sys.argv)>1:
@@ -147,7 +152,7 @@ def main():
     load_numbers = read_problem(filepath)
     sorted_savings = calculate_savings(load_numbers)
     routes = build_routes(sorted_savings,load_numbers)
-    print(len(routes))
+    output(routes)
     
 if __name__ == "__main__":
     main()

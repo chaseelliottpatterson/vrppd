@@ -75,6 +75,7 @@ def loadSolutionFromString(solutionStr):
         line = line.replace('[','')
         line = line.replace(']','')
         line = line.replace('\n','')
+        line = line.replace('\r','')
         line = line.replace(' ','')
         splits = line.split(',')
         schedule = []
