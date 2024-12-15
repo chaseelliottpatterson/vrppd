@@ -59,16 +59,24 @@ def calculate_savings(load_numbers):
     #Clark-Wright step 2 rank the savings list in decending order of magnitude
     return sorted(savings_list, key=lambda x: x[0], reverse=True)
 
+def route_distances(stops):
+    dist = euclidean_distance(ORIGIN,stops[0].pickup)+euclidean_distance(stops[-1].dropoff,ORIGIN) #always will have to add initial and final locaitons
+    for idx in range(len(stops)):
+        dist = dist + stops[idx].dist
+        if idx < (len(stops)-1):
+            dist = dist + euclidean_distance(stops[idx].dropoff, stops[idx+1].pickup)
+    return dist
+
 def build_routes(sorted_savings, load_numbers):
     routes = []
     #Clark-Wright step 3 
     #For the savings S(i,j) under consideration, include link (i,j) in a route if no route constraints will be violated through the inclusion of (i,j) in a route, and if:
     for saving in sorted_savings:
-        saving_value = saving[0]
         load_i_index = saving[1][0]
         load_j_index = saving[1][1]
         load_i = load_numbers[load_i_index]
         load_j = load_numbers[load_j_index]
+
         #a. Either, neither i nor j have already been assigned to a route, in which case a new route is initiated including both i and j.
         if load_i.existing_route is None and load_j.existing_route is None:
                 #if route does not exceed max distance create a new route from the 2 loads
@@ -80,10 +88,33 @@ def build_routes(sorted_savings, load_numbers):
                     load_i.existing_route=new_route
                     load_j.existing_route=new_route
                     routes.append(new_route)
-##ToDo
+
         #b. Or, exactly one of the two points (i or j) has already been included in an existing route and that point is not interior to that route 
-        # (a point is interior to a route if it is not adjacent to the depot D in the order of traversal of points), in which case the link (i, j) is added to that same route.      
-        #
+        # (a point is interior to a route if it is not adjacent to the depot D in the order of traversal of points), in which case the link (i, j) is added to that same route. 
+        elif load_i.existing_route is not None and load_j.existing_route is None:   #i exists j doesn't case
+            my_route = load_i.existing_route
+            idx = my_route.path.index(load_i)
+            if idx == 0:                                                            #check if this is fitst stop in route
+                if route_distances([load_j] + my_route.path) <= MAX_DISTANCE:       #if it is fitst stop and adding it doesnt exceed max distance go ahead and add it to the start
+                    load_j.existing_route = my_route
+                    my_route.path = [load_j] + my_route.path
+            elif idx == len(my_route.path) - 1:                                     #check if this is last stop in route
+                if route_distances(my_route.path+[load_j]) <= MAX_DISTANCE:         #if it is last stop and adding it doesnt exceed max distance go ahead and add it to the end
+                    load_j.existing_route = my_route
+                    my_route.path.append(load_j)
+
+        elif load_i.existing_route is None and load_j.existing_route is not None:   #j exists i doesn't case
+            my_route = load_j.existing_route
+            jdx = my_route.path.index(load_j)
+            if jdx == 0:                                                            #check if this is fitst stop in route
+                if route_distances([load_i] + my_route.path) <= MAX_DISTANCE:       #if it is fitst stop and adding it doesnt exceed max distance go ahead and add it to the start
+                    load_i.existing_route = my_route
+                    my_route.path = [load_i] + my_route.path
+            elif jdx == len(my_route.path) - 1:                                     #check if this is last stop in route
+                if route_distances(my_route.path+[load_i]) <= MAX_DISTANCE:         #if it is last stop and adding it doesnt exceed max distance go ahead and add it to the end
+                    load_i.existing_route = my_route
+                    my_route.path.append(load_i)
+##ToDo
         #c. Or, both i and j have already been included in two different existing routes and neither point is interior to its route, in which case the two routes are merged.
     
     #Clark-Wright step 4
@@ -97,6 +128,5 @@ def main():
     load_numbers = read_problem(filepath)
     sorted_savings = calculate_savings(load_numbers)
     build_routes(sorted_savings,load_numbers)
-
 if __name__ == "__main__":
     main()
