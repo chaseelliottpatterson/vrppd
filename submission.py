@@ -114,12 +114,31 @@ def build_routes(sorted_savings, load_numbers):
                 if route_distances(my_route.path+[load_i]) <= MAX_DISTANCE:         #if it is last stop and adding it doesnt exceed max distance go ahead and add it to the end
                     load_i.existing_route = my_route
                     my_route.path.append(load_i)
-##ToDo
-        #c. Or, both i and j have already been included in two different existing routes and neither point is interior to its route, in which case the two routes are merged.
+
+        #c. Or, both i and j have already been included in two different existing routes and neither point is interior to its route, in which case the two routes are merged. 
+        else:
+            route_i = load_i.existing_route
+            route_j = load_j.existing_route
+            idx = route_i.path.index(load_i)
+            jdx = route_j.path.index(load_j)
+            if idx == len(route_i.path)-1 and (jdx == 0) and (route_i != route_j):
+                if MAX_DISTANCE >= route_distances(route_i.path+route_j.path):
+                    route_i.path = route_i.path+route_j.path
+                    for load_number in route_j.path:
+                        load_number.existing_route = route_i
+                    routes.remove(route_j)
+
+            #Clark-Wright step 4
+            #If the savings list s(i, j) has not been exhausted, return to Step 3, processing the next entry in the list; otherwise, stop: the solution to the VRP consists of the routes created during
+            #  Step 3.(Any points that have not been assigned to a route during Step 3 must each be served by a vehicle route that begins at the depot D visits the unassigned point and returns to D.)
+            for unassigned_load in load_numbers:
+                if unassigned_load.existing_route is None:
+                    unassigned_route = Route()
+                    unassigned_route.path.append(unassigned_load)
+                    unassigned_load.existing_route=unassigned_route
+                    routes.append(unassigned_route)
+    return routes
     
-    #Clark-Wright step 4
-    #If the savings list s(i, j) has not been exhausted, return to Step 3, processing the next entry in the list; otherwise, stop: the solution to the VRP consists of the routes created during
-    #  Step 3.(Any points that have not been assigned to a route during Step 3 must each be served by a vehicle route that begins at the depot D visits the unassigned point and returns to D.)
 
 
 def main():
@@ -127,6 +146,8 @@ def main():
         filepath = sys.argv[1]
     load_numbers = read_problem(filepath)
     sorted_savings = calculate_savings(load_numbers)
-    build_routes(sorted_savings,load_numbers)
+    routes = build_routes(sorted_savings,load_numbers)
+    print(len(routes))
+    
 if __name__ == "__main__":
     main()
