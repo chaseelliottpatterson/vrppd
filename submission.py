@@ -7,11 +7,17 @@ class Point:
         self.y = y
 
 class LoadNumber:
-    def __init__(self, number, pickup, dropoff):
+    def __init__(self, number, pickup, dropoff, existing_route=None):
         self.number = number
         self.pickup = pickup
         self.dropoff = dropoff
         self.dist = euclidean_distance(pickup,dropoff)
+        self.existing_route = existing_route
+
+class Route:
+    def __init__(self):
+        self.dist  = 0.0 
+        self.path = []
         
 MAX_DISTANCE = 720 #max distance constraint 12hrs converted to min
 ORIGIN = Point(0,0) 
@@ -53,13 +59,28 @@ def calculate_savings(load_numbers):
     #Clark-Wright step 2 rank the savings list in decending order of magnitude
     return sorted(savings_list, key=lambda x: x[0], reverse=True)
 
-## ToDo
-
+def build_routes(sorted_savings, load_numbers):
+    routes = []
     #Clark-Wright step 3 
     #For the savings S(i,j) under consideration, include link (i,j) in a route if no route constraints will be violated through the inclusion of (i,j) in a route, and if:
-        #
+    for saving in sorted_savings:
+        saving_value = saving[0]
+        load_i_index = saving[1][0]
+        load_j_index = saving[1][1]
+        load_i = load_numbers[load_i_index]
+        load_j = load_numbers[load_j_index]
         #a. Either, neither i nor j have already been assigned to a route, in which case a new route is initiated including both i and j.
-        #
+        if load_i.existing_route is None and load_j.existing_route is None:
+                #if route does not exceed max distance create a new route from the 2 loads
+                length = euclidean_distance(ORIGIN,load_i.pickup) + load_i.dist + euclidean_distance(load_i.dropoff, load_j.pickup) + load_j.dist + euclidean_distance(load_j.dropoff, ORIGIN)
+                if length <= MAX_DISTANCE:
+                    new_route = Route()
+                    new_route.dist = length
+                    new_route.path = [load_i, load_j]
+                    load_i.existing_route=new_route
+                    load_j.existing_route=new_route
+                    routes.append(new_route)
+##ToDo
         #b. Or, exactly one of the two points (i or j) has already been included in an existing route and that point is not interior to that route 
         # (a point is interior to a route if it is not adjacent to the depot D in the order of traversal of points), in which case the link (i, j) is added to that same route.      
         #
@@ -75,6 +96,7 @@ def main():
         filepath = sys.argv[1]
     load_numbers = read_problem(filepath)
     sorted_savings = calculate_savings(load_numbers)
-    print(sorted_savings)
+    build_routes(sorted_savings,load_numbers)
+
 if __name__ == "__main__":
     main()
